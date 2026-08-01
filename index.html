@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>triCode | 3 en raya online y local</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+    :root {
+        --bg: #0a0e1a;
+        --card-bg: rgba(16, 24, 43, 0.92);
+        --card-border: rgba(124, 92, 255, 0.25);
+        --primary-neon: #22e5ff;   /* X */
+        --secondary-neon: #ff3d81; /* O */
+        --accent-violet: #7c5cff;
+        --local-accent: #34d399;
+        --text-light: #eef2fb;
+        --text-muted: #7d8aa8;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+        background-color: var(--bg);
+        background-image:
+            linear-gradient(rgba(124,92,255,0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(124,92,255,0.06) 1px, transparent 1px);
+        background-size: 28px 28px;
+        color: var(--text-light);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 15px;
+    }
+
+    .hidden { display: none !important; }
+
+    .main-container {
+        background: var(--card-bg);
+        backdrop-filter: blur(6px);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 28px 22px;
+        width: 100%;
+        max-width: 380px;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.02);
+        text-align: center;
+    }
+
+    /* ---------- TITLE ---------- */
+    .game-title {
+        font-family: 'Chakra Petch', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+    }
+
+    .title-tri { color: var(--text-light); }
+
+    .title-code {
+        background: linear-gradient(120deg, var(--primary-neon), var(--accent-violet) 55%, var(--secondary-neon));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .cursor {
+        display: inline-block;
+        width: 9px;
+        height: 1.7rem;
+        background: var(--primary-neon);
+        margin-left: 5px;
+        animation: blink 1.1s steps(1) infinite;
+        box-shadow: 0 0 10px var(--primary-neon);
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .subtitle {
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+    }
+
+    /* ---------- INPUTS ---------- */
+    .input-group { text-align: left; margin-bottom: 14px; }
+
+    .input-group label {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 12px 14px;
+        background: rgba(6, 10, 20, 0.85);
+        border: 2px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="text"]:focus {
+        border-color: var(--accent-violet);
+        box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.18);
+    }
+
+    .divider {
+        margin: 20px 0 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        line-height: 0.1em;
+    }
+
+    .divider span {
+        background: #101528;
+        padding: 0 10px;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 1.5px;
+        font-weight: 600;
+    }
+
+    /* ---------- MODE BUTTONS ---------- */
+    .mode-buttons { display: flex; flex-direction: column; gap: 12px; }
+
+    .btn {
+        width: 100%;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+
+    .btn-mode {
+        padding: 12px 14px;
+        text-align: left;
+        justify-content: flex-start;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        color: var(--text-light);
+    }
+
+    .btn-mode .btn-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .btn-mode .btn-text { display: flex; flex-direction: column; gap: 1px; }
+    .btn-mode .btn-text strong { font-size: 0.92rem; }
+    .btn-mode .btn-text small { color: var(--text-muted); font-size: 0.72rem; font-weight: 400; }
+
+    .btn-create:hover { transform: translateY(-2px); border-color: var(--accent-violet); box-shadow: 0 8px 20px rgba(124, 92, 255, 0.25); }
+    .btn-create .btn-icon { background: rgba(124, 92, 255, 0.15); color: var(--accent-violet); }
+
+    .btn-join-action:hover { transform: translateY(-2px); }
+    .join-row .btn-icon { background: rgba(34, 229, 255, 0.15); color: var(--primary-neon); }
+
+    .btn-local:hover { transform: translateY(-2px); border-color: var(--local-accent); box-shadow: 0 8px 20px rgba(52, 211, 153, 0.2); }
+    .btn-local .btn-icon { background: rgba(52, 211, 153, 0.15); color: var(--local-accent); }
+
+    .join-row { display: flex; gap: 8px; align-items: stretch; }
+
+    .join-row input {
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        letter-spacing: 3px;
+    }
+
+    .btn-join-action {
+        width: auto;
+        padding: 0 16px;
+        background: var(--primary-neon);
+        color: #04121a;
+        white-space: nowrap;
+    }
+
+    .local-setup {
+        background: rgba(52, 211, 153, 0.06);
+        border: 1.5px dashed rgba(52, 211, 153, 0.35);
+        border-radius: 12px;
+        padding: 14px;
+        margin-top: -2px;
+        text-align: left;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--local-accent), #14b8a6);
+        color: #041a14;
+        padding: 12px;
+        margin-top: 10px;
+        font-size: 0.92rem;
+    }
+
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(52, 211, 153, 0.3); }
+
+    /* ---------- GAME SCREEN ---------- */
+    .room-info {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 6px 14px;
+        border-radius: 8px;
+        display: inline-block;
+        margin-bottom: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+
+    .room-info strong { color: var(--primary-neon); letter-spacing: 3px; }
+
+    .turn-status {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(124, 92, 255, 0.1);
+        border: 1px solid rgba(124, 92, 255, 0.25);
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .turn-status.pulse { animation: pulseStatus 1.6s ease-in-out infinite; }
+
+    @keyframes pulseStatus {
+        0%, 100% { box-shadow: 0 0 0 rgba(124, 92, 255, 0); }
+        50% { box-shadow: 0 0 14px rgba(124, 92, 255, 0.35); }
+    }
+
+    .score-bar {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+    }
+
+    .score-bar span strong { color: var(--text-light); }
+    .score-x strong { color: var(--primary-neon); }
+    .score-o strong { color: var(--secondary-neon); }
+
+    .board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .cell {
+        aspect-ratio: 1;
+        background: rgba(6, 10, 20, 0.85);
+        border: 2px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        font-family: 'Chakra Petch', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: border-color 0.15s ease, transform 0.1s ease;
+    }
+
+    .cell:not(:disabled):hover { border-color: rgba(255,255,255,0.25); transform: translateY(-1px); }
+    .cell:disabled { cursor: default; }
+
+    .x-color { color: var(--primary-neon); text-shadow: 0 0 12px rgba(34, 229, 255, 0.55); }
+    .o-color { color: var(--secondary-neon); text-shadow: 0 0 12px rgba(255, 61, 129, 0.55); }
+
+    .cell.win {
+        border-color: currentColor;
+        box-shadow: 0 0 16px currentColor, inset 0 0 16px currentColor;
+        animation: winPulse 1.1s ease-in-out infinite;
+    }
+
+    @keyframes winPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+    .game-actions { display: flex; flex-direction: column; gap: 10px; }
+
+    .btn-secondary2 {
+        background: rgba(124, 92, 255, 0.15);
+        color: var(--accent-violet);
+        border: 1px solid rgba(124, 92, 255, 0.4);
+        padding: 12px;
+    }
+
+    .btn-secondary2:hover { background: rgba(124, 92, 255, 0.25); }
+
+    .btn-danger {
+        background: rgba(244, 63, 94, 0.12);
+        color: var(--secondary-neon);
+        border: 1px solid rgba(255, 61, 129, 0.4);
+        padding: 12px;
+    }
+
+    .btn-danger:hover { background: rgba(244, 63, 94, 0.2); }
+</style>
+</head>
+<body>
+
+<!-- MENÚ PRINCIPAL -->
+<main id="menu-screen" class="main-container">
+    <header>
+        <h1 class="game-title">
+            <span class="title-tri">tri</span><span class="title-code">Code</span><span class="cursor"></span>
+        </h1>
+        <p class="subtitle">3 en raya · online o cara a cara</p>
+    </header>
+
+    <section>
+        <div class="input-group">
+            <label for="username"><i class="fa-solid fa-user"></i> Tu nombre</label>
+            <input type="text" id="username" placeholder="Ej. ProPlayer" maxlength="12">
+        </div>
+
+        <div class="input-group hidden" id="local-name-group">
+            <label for="username2"><i class="fa-solid fa-user"></i> Nombre del Jugador 2</label>
+            <input type="text" id="username2" placeholder="Ej. Retador" maxlength="12">
+        </div>
+
+        <div class="divider"><span>MODO DE JUEGO</span></div>
+
+        <div class="mode-buttons">
+            <button id="btn-create" class="btn btn-mode btn-create">
+                <span class="btn-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
+                <span class="btn-text"><strong>Crear sala</strong><small>Online · comparte el código con tu rival</small></span>
+            </button>
+
+            <div class="join-row">
+                <input type="text" id="room-code-input" placeholder="CÓDIGO" maxlength="4">
+                <button id="btn-join" class="btn btn-join-action btn-join-action">
+                    <i class="fa-solid fa-right-to-bracket"></i> Unirme
+                </button>
+            </div>
+
+            <button id="btn-local" class="btn btn-mode btn-local">
+                <span class="btn-icon"><i class="fa-solid fa-users"></i></span>
+                <span class="btn-text"><strong>Dos jugadores</strong><small>Mismo dispositivo, por turnos</small></span>
+            </button>
+
+            <div id="local-setup" class="local-setup hidden">
+                <button id="btn-local-start" class="btn btn-primary">
+                    <i class="fa-solid fa-play"></i> Empezar partida
+                </button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- TABLERO DE JUEGO -->
+<main id="game-screen" class="main-container hidden">
+    <header>
+        <div class="room-info hidden" id="room-info">
+            SALA <strong id="display-room-code">----</strong>
+        </div>
+        <div class="turn-status" id="turn-status">
+            <p id="status-text">Esperando rival...</p>
+        </div>
+        <div class="score-bar">
+            <span class="score-x">X <strong id="score-x">0</strong></span>
+            <span>Empates <strong id="score-d">0</strong></span>
+            <span class="score-o">O <strong id="score-o">0</strong></span>
+        </div>
+    </header>
+
+    <section class="board" id="board">
+        <button class="cell" data-index="0"></button>
+        <button class="cell" data-index="1"></button>
+        <button class="cell" data-index="2"></button>
+        <button class="cell" data-index="3"></button>
+        <button class="cell" data-index="4"></button>
+        <button class="cell" data-index="5"></button>
+        <button class="cell" data-index="6"></button>
+        <button class="cell" data-index="7"></button>
+        <button class="cell" data-index="8"></button>
+    </section>
+
+    <div class="game-actions">
+        <button id="btn-restart" class="btn btn-secondary2 hidden">
+            <i class="fa-solid fa-rotate-right"></i> Reiniciar
+        </button>
+        <button id="btn-leave" class="btn btn-danger">
+            <i class="fa-solid fa-door-open"></i> Salir
+        </button>
+    </div>
+</main>
+
+<script>
+    // ---------- ELEMENTOS ----------
+    const usernameInput = document.getElementById('username');
+    const username2Input = document.getElementById('username2');
+    const localNameGroup = document.getElementById('local-name-group');
+    const roomCodeInput = document.getElementById('room-code-input');
+
+    const btnCreate = document.getElementById('btn-create');
+    const btnJoin = document.getElementById('btn-join');
+    const btnLocal = document.getElementById('btn-local');
+    const localSetup = document.getElementById('local-setup');
+    const btnLocalStart = document.getElementById('btn-local-start');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnLeave = document.getElementById('btn-leave');
+
+    const menuScreen = document.getElementById('menu-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const roomInfo = document.getElementById('room-info');
+    const displayRoomCode = document.getElementById('display-room-code');
+    const statusText = document.getElementById('status-text');
+    const turnStatus = document.getElementById('turn-status');
+    const boardEl = document.getElementById('board');
+    const cells = Array.from(document.querySelectorAll('.cell'));
+    const scoreXEl = document.getElementById('score-x');
+    const scoreOEl = document.getElementById('score-o');
+    const scoreDEl = document.getElementById('score-d');
+
+    const WIN_COMBOS = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+
+    // ---------- ESTADO ----------
+    let mode = null;           // 'online-host' | 'online-guest' | 'local'
+    let peer = null;
+    let conn = null;
+    let roomCode = null;
+    let mySymbol = null;       // online
+    let localNames = { X: 'Jugador 1', O: 'Jugador 2' };
+    let opponentName = null;
+
+    let board = Array(9).fill(null);
+    let currentTurn = 'X';
+    let gameActive = false;
+    let scores = { X: 0, O: 0, D: 0 };
+
+    // ---------- UTILIDADES ----------
+    function generarCodigoSala() {
+        const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let codigo = '';
+        for (let i = 0; i < 4; i++) {
+            codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+        }
+        return codigo;
+    }
+
+    function obtenerNombreUsuario() {
+        const nombre = usernameInput.value.trim();
+        if (!nombre) {
+            alert('⚠️ Por favor, ingresa tu nombre.');
+            return null;
+        }
+        return nombre;
+    }
+
+    function setButtonLoading(btn, loading, loadingText) {
+        if (loading) {
+            btn.dataset.originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${loadingText}`;
+            btn.disabled = true;
+        } else {
+            if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+            btn.disabled = false;
+        }
+    }
+
+    // ---------- NAVEGACIÓN DE PANTALLAS ----------
+    function mostrarTablero() {
+        menuScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+    }
+
+    function volverAlMenu() {
+        gameScreen.classList.add('hidden');
+        menuScreen.classList.remove('hidden');
+        roomCodeInput.value = '';
+        setButtonLoading(btnCreate, false);
+        setButtonLoading(btnJoin, false);
+    }
+
+    // ---------- LÓGICA DEL TABLERO ----------
+    function resetGameState() {
+        board = Array(9).fill(null);
+        currentTurn = 'X';
+        gameActive = true;
+        scores = { X: 0, O: 0, D: 0 };
+        opponentName = null;
+        renderBoard();
+        updateScoreBar();
+        btnRestart.classList.add('hidden');
+    }
+
+    function renderBoard() {
+        cells.forEach((cell, i) => {
+            cell.textContent = board[i] || '';
+            cell.classList.remove('x-color', 'o-color', 'win');
+            if (board[i] === 'X') cell.classList.add('x-color');
+            if (board[i] === 'O') cell.classList.add('o-color');
+            cell.disabled = !!board[i];
+        });
+    }
+
+    function checkWinner() {
+        for (const combo of WIN_COMBOS) {
+            const [a, b, c] = combo;
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                return { winner: board[a], combo };
+            }
+        }
+        if (board.every(v => v)) return 'draw';
+        return null;
+    }
+
+    function updateScoreBar() {
+        scoreXEl.textContent = scores.X;
+        scoreOEl.textContent = scores.O;
+        scoreDEl.textContent = scores.D;
+    }
+
+    function highlightWinCombo(combo) {
+        combo.forEach(i => cells[i].classList.add('win'));
+    }
+
+    function updateStatusText() {
+        turnStatus.classList.remove('pulse');
+        if (mode === 'local') {
+            statusText.innerHTML = `Turno de <strong>${localNames[currentTurn]}</strong> (${currentTurn})`;
+        } else {
+            if (currentTurn === mySymbol) {
+                statusText.textContent = 'Tu turno';
+            } else {
+                statusText.textContent = `Turno de ${opponentName || 'tu rival'}`;
+            }
+        }
+    }
+
+    function endGame(result) {
+        gameActive = false;
+        cells.forEach(c => c.disabled = true);
+        turnStatus.classList.remove('pulse');
+
+        if (result === 'draw') {
+            scores.D++;
+            statusText.textContent = '🤝 ¡Empate!';
+        } else {
+            scores[result.winner]++;
+            highlightWinCombo(result.combo);
+            if (mode === 'local') {
+                statusText.innerHTML = `🏆 ¡${localNames[result.winner]} gana! (${result.winner})`;
+            } else {
+                statusText.textContent = (result.winner === mySymbol) ? '🏆 ¡Ganaste!' : '💀 Perdiste, tu rival gana.';
+            }
+        }
+        updateScoreBar();
+        btnRestart.classList.remove('hidden');
+    }
+
+    function processMove(index, symbol) {
+        if (!gameActive || board[index]) return false;
+        board[index] = symbol;
+        renderBoard();
+        const result = checkWinner();
+        if (result) {
+            endGame(result);
+        } else {
+            currentTurn = symbol === 'X' ? 'O' : 'X';
+            updateStatusText();
+        }
+        return true;
+    }
+
+    function onCellClick(e) {
+        const index = parseInt(e.currentTarget.dataset.index, 10);
+        if (!gameActive || board[index]) return;
+
+        if (mode === 'local') {
+            processMove(index, currentTurn);
+        } else {
+            if (mySymbol !== currentTurn) return;
+            processMove(index, mySymbol);
+            if (conn && conn.open) {
+                conn.send({ type: 'move', index, symbol: mySymbol });
+            }
+        }
+    }
+
+    cells.forEach(cell => cell.addEventListener('click', onCellClick));
+
+    // ---------- MODO LOCAL (2 JUGADORES) ----------
+    btnLocal.addEventListener('click', () => {
+        const nombre = obtenerNombreUsuario();
+        if (!nombre) return;
+        localNameGroup.classList.remove('hidden');
+        localSetup.classList.remove('hidden');
+    });
+
+    btnLocalStart.addEventListener('click', () => {
+        const nombre1 = obtenerNombreUsuario();
+        if (!nombre1) return;
+        const nombre2 = username2Input.value.trim() || 'Jugador 2';
+
+        mode = 'local';
+        localNames = { X: nombre1, O: nombre2 };
+        roomInfo.classList.add('hidden');
+
+        resetGameState();
+        mostrarTablero();
+        updateStatusText();
+    });
+
+    // ---------- MODO ONLINE: CREAR SALA ----------
+    btnCreate.addEventListener('click', () => {
+        const nombre = obtenerNombreUsuario();
+        if (!nombre) return;
+
+        if (typeof Peer === 'undefined') {
+            alert('⚠️ No se pudo cargar el módulo de conexión. Revisa tu internet e inténtalo de nuevo.');
+            return;
+        }
+
+        mode = 'online-host';
+        mySymbol = 'X';
+        setButtonLoading(btnCreate, true, 'Creando sala...');
+        crearPeerHost(0);
+    });
+
+    function crearPeerHost(intentos) {
+        roomCode = generarCodigoSala();
+        const peerId = 'tricode-' + roomCode.toLowerCase();
+
+        if (peer) { try { peer.destroy(); } catch (e) {} }
+        peer = new Peer(peerId, { debug: 0 });
+
+        peer.on('open', () => {
+            setButtonLoading(btnCreate, false);
+            resetGameState();
+            mostrarTablero();
+            displayRoomCode.textContent = roomCode;
+            roomInfo.classList.remove('hidden');
+            statusText.textContent = 'Comparte el código. Esperando rival...';
+            turnStatus.classList.add('pulse');
+        });
+
+        peer.on('connection', (incoming) => {
+            conn = incoming;
+            setupConnection();
+        });
+
+        peer.on('error', (err) => {
+            if (err.type === 'unavailable-id' && intentos < 5) {
+                crearPeerHost(intentos + 1);
+            } else {
+                setButtonLoading(btnCreate, false);
+                alert('⚠️ No se pudo crear la sala. Revisa tu conexión a internet e inténtalo de nuevo.');
+                volverAlMenu();
+            }
+        });
+    }
+
+    // ---------- MODO ONLINE: UNIRSE ----------
+    btnJoin.addEventListener('click', () => {
+        const nombre = obtenerNombreUsuario();
+        if (!nombre) return;
+
+        const codigo = roomCodeInput.value.trim().toUpperCase();
+        if (codigo.length !== 4) {
+            alert('⚠️ Ingresa un código válido de 4 caracteres.');
+            return;
+        }
+
+        if (typeof Peer === 'undefined') {
+            alert('⚠️ No se pudo cargar el módulo de conexión. Revisa tu internet e inténtalo de nuevo.');
+            return;
+        }
+
+        mode = 'online-guest';
+        mySymbol = 'O';
+        roomCode = codigo;
+        setButtonLoading(btnJoin, true, 'Conectando...');
+
+        if (peer) { try { peer.destroy(); } catch (e) {} }
+        peer = new Peer(null, { debug: 0 });
+
+        peer.on('open', () => {
+            const targetId = 'tricode-' + codigo.toLowerCase();
+            conn = peer.connect(targetId, { reliable: true });
+            setupConnection();
+
+            conn.on('open', () => {
+                setButtonLoading(btnJoin, false);
+                resetGameState();
+                mostrarTablero();
+                displayRoomCode.textContent = codigo;
+                roomInfo.classList.remove('hidden');
+                conn.send({ type: 'welcome', name: usernameInput.value.trim() });
+                updateStatusText();
+            });
+        });
+
+        peer.on('error', (err) => {
+            setButtonLoading(btnJoin, false);
+            alert('⚠️ No se encontró esa sala, o hubo un error de conexión. Verifica el código e inténtalo de nuevo.');
+            volverAlMenu();
+        });
+    });
+
+    // ---------- CONEXIÓN P2P ----------
+    function setupConnection() {
+        conn.on('open', () => {
+            conn.send({ type: 'welcome', name: usernameInput.value.trim() });
+        });
+
+        conn.on('data', (data) => handleData(data));
+
+        conn.on('close', () => {
+            if (gameActive || mode) {
+                gameActive = false;
+                cells.forEach(c => c.disabled = true);
+                turnStatus.classList.remove('pulse');
+                statusText.textContent = '⚠️ Tu rival se desconectó.';
+                btnRestart.classList.add('hidden');
+            }
+        });
+    }
+
+    function handleData(data) {
+        if (!data || !data.type) return;
+
+        switch (data.type) {
+            case 'welcome':
+                opponentName = data.name || 'Rival';
+                gameActive = true;
+                currentTurn = 'X';
+                turnStatus.classList.remove('pulse');
+                updateStatusText();
+                break;
+
+            case 'move':
+                processMove(data.index, data.symbol);
+                break;
+
+            case 'restart':
+                board = Array(9).fill(null);
+                currentTurn = 'X';
+                gameActive = true;
+                renderBoard();
+                updateStatusText();
+                btnRestart.classList.add('hidden');
+                break;
+        }
+    }
+
+    // ---------- REINICIAR / SALIR ----------
+    btnRestart.addEventListener('click', () => {
+        if (mode !== 'local' && conn && conn.open) {
+            conn.send({ type: 'restart' });
+        }
+        board = Array(9).fill(null);
+        currentTurn = 'X';
+        gameActive = true;
+        renderBoard();
+        updateStatusText();
+        btnRestart.classList.add('hidden');
+    });
+
+    btnLeave.addEventListener('click', () => {
+        if (conn) { try { conn.close(); } catch (e) {} conn = null; }
+        if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+        mode = null;
+        gameActive = false;
+        localNameGroup.classList.add('hidden');
+        localSetup.classList.add('hidden');
+        volverAlMenu();
+    });
+
+    // ---------- INPUT AUXILIAR ----------
+    roomCodeInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase();
+    });
+
+    roomCodeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnJoin.click();
+    });
+
+    usernameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnCreate.click();
+    });
+</script>
+</body>
+</html>

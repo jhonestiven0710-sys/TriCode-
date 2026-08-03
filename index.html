@@ -333,6 +333,132 @@
     }
 
     .btn-danger:hover { background: rgba(244, 63, 94, 0.2); }
+
+    /* ---------- SELECTOR DE FICHAS ---------- */
+    .theme-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .theme-btn {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 8px 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        color: var(--text-light);
+    }
+
+    .theme-btn .theme-icons { font-size: 1.05rem; letter-spacing: 2px; }
+    .theme-btn small { font-size: 0.58rem; color: var(--text-muted); font-weight: 600; }
+    .theme-btn:hover { transform: translateY(-2px); }
+
+    .theme-btn.active {
+        border-color: var(--accent-violet);
+        background: rgba(124, 92, 255, 0.14);
+        box-shadow: 0 0 0 1px var(--accent-violet) inset;
+    }
+
+    .theme-btn.active small { color: var(--accent-violet); }
+
+    /* ---------- ENLACE HISTORIAL ---------- */
+    .history-link {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        margin-top: 16px;
+        padding: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        width: 100%;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .history-link:hover { color: var(--accent-violet); }
+
+    /* ---------- PANTALLA DE HISTORIAL ---------- */
+    .history-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+    }
+
+    .history-title {
+        font-family: 'Chakra Petch', sans-serif;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .icon-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text-light);
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .icon-btn:hover { border-color: var(--accent-violet); color: var(--accent-violet); }
+
+    .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 420px;
+        overflow-y: auto;
+    }
+
+    .history-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 10px 12px;
+        text-align: left;
+    }
+
+    .history-item .h-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 3px;
+    }
+
+    .history-item .h-meta {
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .history-empty {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        text-align: center;
+        padding: 34px 10px;
+    }
+
+    .result-win { color: var(--local-accent); }
+    .result-lose { color: var(--secondary-neon); }
+    .result-draw { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -348,13 +474,30 @@
 
     <section>
         <div class="input-group">
-            <label for="username"><i class="fa-solid fa-user"></i> Tu nombre</label>
+            <label for="username"><i class="fa-solid fa-user"></i> Tu nombre <span style="opacity:.6;font-weight:400;">(se guarda en este dispositivo)</span></label>
             <input type="text" id="username" placeholder="Ej. ProPlayer" maxlength="12">
         </div>
 
         <div class="input-group hidden" id="local-name-group">
             <label for="username2"><i class="fa-solid fa-user"></i> Nombre del Jugador 2</label>
             <input type="text" id="username2" placeholder="Ej. Retador" maxlength="12">
+        </div>
+
+        <div class="divider"><span>ELIGE TUS FICHAS</span></div>
+
+        <div class="theme-row" id="theme-row">
+            <button class="theme-btn" data-theme="classic">
+                <span class="theme-icons">X/O</span><small>Clásico</small>
+            </button>
+            <button class="theme-btn" data-theme="elemental">
+                <span class="theme-icons">🔥/💧</span><small>Elemental</small>
+            </button>
+            <button class="theme-btn" data-theme="space">
+                <span class="theme-icons">⭐/🌙</span><small>Espacial</small>
+            </button>
+            <button class="theme-btn" data-theme="animals">
+                <span class="theme-icons">🐱/🐶</span><small>Salvaje</small>
+            </button>
         </div>
 
         <div class="divider"><span>MODO DE JUEGO</span></div>
@@ -383,7 +526,21 @@
                 </button>
             </div>
         </div>
+
+        <button id="btn-history" class="history-link">
+            <i class="fa-solid fa-clock-rotate-left"></i> Ver historial de partidas
+        </button>
     </section>
+</main>
+
+<!-- HISTORIAL DE PARTIDAS -->
+<main id="history-screen" class="main-container hidden">
+    <div class="history-header">
+        <button id="btn-history-back" class="icon-btn"><i class="fa-solid fa-arrow-left"></i></button>
+        <h2 class="history-title">Historial</h2>
+        <button id="btn-history-clear" class="icon-btn" title="Borrar historial"><i class="fa-solid fa-trash"></i></button>
+    </div>
+    <div id="history-list" class="history-list"></div>
 </main>
 
 <!-- TABLERO DE JUEGO -->
@@ -396,9 +553,9 @@
             <p id="status-text">Esperando rival...</p>
         </div>
         <div class="score-bar">
-            <span class="score-x">X <strong id="score-x">0</strong></span>
+            <span class="score-x"><span id="label-x">X</span> <strong id="score-x">0</strong></span>
             <span>Empates <strong id="score-d">0</strong></span>
-            <span class="score-o">O <strong id="score-o">0</strong></span>
+            <span class="score-o"><span id="label-o">O</span> <strong id="score-o">0</strong></span>
         </div>
     </header>
 
@@ -416,7 +573,7 @@
 
     <div class="game-actions">
         <button id="btn-restart" class="btn btn-secondary2 hidden">
-            <i class="fa-solid fa-rotate-right"></i> Reiniciar
+            <i class="fa-solid fa-rotate-right"></i> Revancha
         </button>
         <button id="btn-leave" class="btn btn-danger">
             <i class="fa-solid fa-door-open"></i> Salir
@@ -450,6 +607,17 @@
     const scoreXEl = document.getElementById('score-x');
     const scoreOEl = document.getElementById('score-o');
     const scoreDEl = document.getElementById('score-d');
+    const labelXEl = document.getElementById('label-x');
+    const labelOEl = document.getElementById('label-o');
+
+    const themeRow = document.getElementById('theme-row');
+    const themeButtons = Array.from(document.querySelectorAll('.theme-btn'));
+
+    const btnHistory = document.getElementById('btn-history');
+    const btnHistoryBack = document.getElementById('btn-history-back');
+    const btnHistoryClear = document.getElementById('btn-history-clear');
+    const historyScreen = document.getElementById('history-screen');
+    const historyListEl = document.getElementById('history-list');
 
     const WIN_COMBOS = [
         [0,1,2],[3,4,5],[6,7,8],
@@ -471,6 +639,142 @@
     let gameActive = false;
     let scores = { X: 0, O: 0, D: 0 };
 
+    // ---------- FICHAS / TEMAS ----------
+    const THEMES = {
+        classic:   { X: 'X',  O: 'O' },
+        elemental: { X: '🔥', O: '💧' },
+        space:     { X: '⭐', O: '🌙' },
+        animals:   { X: '🐱', O: '🐶' }
+    };
+    let currentTheme = localStorage.getItem('tricode_theme') || 'classic';
+
+    function symbolFor(key) {
+        return THEMES[currentTheme][key];
+    }
+
+    function applyThemeUI() {
+        themeButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+        });
+        labelXEl.textContent = symbolFor('X');
+        labelOEl.textContent = symbolFor('O');
+    }
+
+    themeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentTheme = btn.dataset.theme;
+            localStorage.setItem('tricode_theme', currentTheme);
+            applyThemeUI();
+            renderBoard();
+        });
+    });
+
+    // ---------- REGISTRO POR DISPOSITIVO ----------
+    const savedName = localStorage.getItem('tricode_username');
+    if (savedName) usernameInput.value = savedName;
+
+    function guardarNombreDispositivo() {
+        const nombre = usernameInput.value.trim();
+        if (nombre) localStorage.setItem('tricode_username', nombre);
+    }
+
+    usernameInput.addEventListener('change', guardarNombreDispositivo);
+    usernameInput.addEventListener('blur', guardarNombreDispositivo);
+
+    // ---------- SONIDO Y VIBRACIÓN ----------
+    let audioCtx = null;
+    function getAudioCtx() {
+        if (!audioCtx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) audioCtx = new AC();
+        }
+        return audioCtx;
+    }
+
+    function playTone(freq, duration, type = 'sine', delay = 0) {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + delay + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + duration + 0.02);
+    }
+
+    function playMoveSound() { playTone(520, 0.08, 'square'); }
+    function playWinSound() {
+        playTone(660, 0.1, 'triangle', 0);
+        playTone(880, 0.12, 'triangle', 0.1);
+        playTone(1100, 0.16, 'triangle', 0.2);
+    }
+    function playDrawSound() {
+        playTone(300, 0.15, 'sine', 0);
+        playTone(240, 0.2, 'sine', 0.12);
+    }
+
+    function vibrate(pattern) {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+    }
+
+    // ---------- HISTORIAL DE PARTIDAS ----------
+    function getHistory() {
+        try { return JSON.parse(localStorage.getItem('tricode_history')) || []; }
+        catch (e) { return []; }
+    }
+
+    function saveHistoryEntry(entry) {
+        const history = getHistory();
+        history.unshift(entry);
+        if (history.length > 40) history.length = 40;
+        localStorage.setItem('tricode_history', JSON.stringify(history));
+    }
+
+    function renderHistory() {
+        const history = getHistory();
+        if (history.length === 0) {
+            historyListEl.innerHTML = '<p class="history-empty">Todavía no tienes partidas registradas. ¡Juega una para empezar tu historial!</p>';
+            return;
+        }
+        historyListEl.innerHTML = history.map(h => {
+            let resultClass = 'result-draw';
+            if (h.result.includes('Ganaste') || h.result.includes('ganó')) resultClass = 'result-win';
+            if (h.result.includes('Perdiste')) resultClass = 'result-lose';
+            return `
+                <div class="history-item">
+                    <div class="h-top">
+                        <span>${h.rival}</span>
+                        <span class="${resultClass}">${h.result}</span>
+                    </div>
+                    <div class="h-meta">${h.mode} · ${h.date}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    btnHistory.addEventListener('click', () => {
+        renderHistory();
+        menuScreen.classList.add('hidden');
+        historyScreen.classList.remove('hidden');
+    });
+
+    btnHistoryBack.addEventListener('click', () => {
+        historyScreen.classList.add('hidden');
+        menuScreen.classList.remove('hidden');
+    });
+
+    btnHistoryClear.addEventListener('click', () => {
+        if (confirm('¿Borrar todo el historial de partidas? Esta acción no se puede deshacer.')) {
+            localStorage.removeItem('tricode_history');
+            renderHistory();
+        }
+    });
+
     // ---------- UTILIDADES ----------
     function generarCodigoSala() {
         const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -487,6 +791,7 @@
             alert('⚠️ Por favor, ingresa tu nombre.');
             return null;
         }
+        localStorage.setItem('tricode_username', nombre);
         return nombre;
     }
 
@@ -529,7 +834,7 @@
 
     function renderBoard() {
         cells.forEach((cell, i) => {
-            cell.textContent = board[i] || '';
+            cell.textContent = board[i] ? symbolFor(board[i]) : '';
             cell.classList.remove('x-color', 'o-color', 'win');
             if (board[i] === 'X') cell.classList.add('x-color');
             if (board[i] === 'O') cell.classList.add('o-color');
@@ -561,7 +866,7 @@
     function updateStatusText() {
         turnStatus.classList.remove('pulse');
         if (mode === 'local') {
-            statusText.innerHTML = `Turno de <strong>${localNames[currentTurn]}</strong> (${currentTurn})`;
+            statusText.innerHTML = `Turno de <strong>${localNames[currentTurn]}</strong> (${symbolFor(currentTurn)})`;
         } else {
             if (currentTurn === mySymbol) {
                 statusText.textContent = 'Tu turno';
@@ -576,18 +881,39 @@
         cells.forEach(c => c.disabled = true);
         turnStatus.classList.remove('pulse');
 
+        let resultText = '';
         if (result === 'draw') {
             scores.D++;
             statusText.textContent = '🤝 ¡Empate!';
+            resultText = 'Empate';
+            playDrawSound();
+            vibrate([40, 40, 40]);
         } else {
             scores[result.winner]++;
             highlightWinCombo(result.combo);
+            playWinSound();
+            vibrate([60, 30, 60]);
             if (mode === 'local') {
-                statusText.innerHTML = `🏆 ¡${localNames[result.winner]} gana! (${result.winner})`;
+                statusText.innerHTML = `🏆 ¡${localNames[result.winner]} gana! (${symbolFor(result.winner)})`;
+                resultText = `${localNames[result.winner]} ganó`;
             } else {
-                statusText.textContent = (result.winner === mySymbol) ? '🏆 ¡Ganaste!' : '💀 Perdiste, tu rival gana.';
+                const gane = result.winner === mySymbol;
+                statusText.textContent = gane ? '🏆 ¡Ganaste!' : '💀 Perdiste, tu rival gana.';
+                resultText = gane ? 'Ganaste' : 'Perdiste';
             }
         }
+
+        if (mode) {
+            const rival = mode === 'local' ? `${localNames.X} vs ${localNames.O}` : (opponentName || 'Rival');
+            const modeLabel = mode === 'local' ? 'Local' : 'Online';
+            saveHistoryEntry({
+                rival,
+                result: resultText,
+                mode: modeLabel,
+                date: new Date().toLocaleString('es', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            });
+        }
+
         updateScoreBar();
         btnRestart.classList.remove('hidden');
     }
@@ -596,6 +922,8 @@
         if (!gameActive || board[index]) return false;
         board[index] = symbol;
         renderBoard();
+        playMoveSound();
+        vibrate(15);
         const result = checkWinner();
         if (result) {
             endGame(result);
@@ -822,6 +1150,9 @@
     usernameInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') btnCreate.click();
     });
+
+    // ---------- INICIALIZACIÓN ----------
+    applyThemeUI();
 </script>
 </body>
 </html>

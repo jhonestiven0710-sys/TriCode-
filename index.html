@@ -459,6 +459,102 @@
     .result-win { color: var(--local-accent); }
     .result-lose { color: var(--secondary-neon); }
     .result-draw { color: var(--text-muted); }
+
+    /* ---------- GEMAS Y TIENDA ---------- */
+    .gem-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(56, 189, 248, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        color: #67e8f9;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        font-size: 0.8rem;
+        margin-bottom: 10px;
+        transition: transform 0.15s ease;
+    }
+
+    .gem-badge.bump { animation: gemBump 0.4s ease; }
+    @keyframes gemBump { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.18); } }
+
+    .shop-hint {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-align: center;
+        margin-bottom: 14px;
+        line-height: 1.4;
+    }
+
+    .shop-hint strong { color: #67e8f9; }
+
+    .shop-list { display: flex; flex-direction: column; gap: 8px; max-height: 460px; overflow-y: auto; }
+
+    .shop-section-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        margin: 10px 0 2px;
+        text-transform: uppercase;
+    }
+
+    .shop-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 10px 12px;
+    }
+
+    .shop-item.owned { border-color: rgba(52, 211, 153, 0.35); }
+    .shop-item.equipped { border-color: var(--accent-violet); background: rgba(124, 92, 255, 0.1); }
+
+    .shop-item-icon {
+        font-size: 1.3rem;
+        letter-spacing: 2px;
+        width: 52px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .shop-item-info { flex: 1; text-align: left; }
+    .shop-item-name { font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .shop-item-cost { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    .rarity-chip {
+        font-size: 0.55rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .rarity-common { background: rgba(52, 211, 153, 0.15); color: var(--local-accent); }
+    .rarity-rare { background: rgba(34, 229, 255, 0.15); color: var(--primary-neon); }
+    .rarity-special { background: rgba(124, 92, 255, 0.18); color: var(--accent-violet); }
+    .rarity-legendary { background: linear-gradient(120deg, rgba(251, 191, 36, 0.22), rgba(255, 61, 129, 0.18)); color: #fbbf24; }
+
+    .shop-item-btn {
+        border: none;
+        border-radius: 9px;
+        padding: 8px 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .shop-item-btn.buy { background: linear-gradient(135deg, #22e5ff, #7c5cff); color: #04121a; }
+    .shop-item-btn.buy:disabled { background: rgba(255,255,255,0.08); color: var(--text-muted); cursor: not-allowed; }
+    .shop-item-btn.equip { background: rgba(52, 211, 153, 0.15); color: var(--local-accent); border: 1px solid rgba(52, 211, 153, 0.4); }
+    .shop-item-btn.equipped-btn { background: rgba(124, 92, 255, 0.2); color: var(--accent-violet); border: 1px solid var(--accent-violet); }
 </style>
 </head>
 <body>
@@ -466,6 +562,7 @@
 <!-- MENÚ PRINCIPAL -->
 <main id="menu-screen" class="main-container">
     <header>
+        <div class="gem-badge" id="gem-badge"><i class="fa-solid fa-gem"></i> <span id="gem-count">0</span></div>
         <h1 class="game-title">
             <span class="title-tri">tri</span><span class="title-code">Code</span><span class="cursor"></span>
         </h1>
@@ -483,22 +580,13 @@
             <input type="text" id="username2" placeholder="Ej. Retador" maxlength="12">
         </div>
 
-        <div class="divider"><span>ELIGE TUS FICHAS</span></div>
+        <div class="divider"><span>TUS FICHAS</span></div>
 
-        <div class="theme-row" id="theme-row">
-            <button class="theme-btn" data-theme="classic">
-                <span class="theme-icons">X/O</span><small>Clásico</small>
-            </button>
-            <button class="theme-btn" data-theme="elemental">
-                <span class="theme-icons">🔥/💧</span><small>Elemental</small>
-            </button>
-            <button class="theme-btn" data-theme="space">
-                <span class="theme-icons">⭐/🌙</span><small>Espacial</small>
-            </button>
-            <button class="theme-btn" data-theme="animals">
-                <span class="theme-icons">🐱/🐶</span><small>Salvaje</small>
-            </button>
-        </div>
+        <div class="theme-row" id="theme-row"></div>
+
+        <button id="btn-shop" class="history-link" style="margin-top:4px;">
+            <i class="fa-solid fa-store"></i> Tienda de fichas
+        </button>
 
         <div class="divider"><span>MODO DE JUEGO</span></div>
 
@@ -541,6 +629,17 @@
         <button id="btn-history-clear" class="icon-btn" title="Borrar historial"><i class="fa-solid fa-trash"></i></button>
     </div>
     <div id="history-list" class="history-list"></div>
+</main>
+
+<!-- TIENDA DE FICHAS -->
+<main id="shop-screen" class="main-container hidden">
+    <div class="history-header">
+        <button id="btn-shop-back" class="icon-btn"><i class="fa-solid fa-arrow-left"></i></button>
+        <h2 class="history-title">Tienda</h2>
+        <div class="gem-badge"><i class="fa-solid fa-gem"></i> <span id="gem-count-shop">0</span></div>
+    </div>
+    <p class="shop-hint">Gana <strong>+1 💎</strong> por partida local ganada y <strong>+2 💎</strong> por partida online ganada.</p>
+    <div id="shop-list" class="shop-list"></div>
 </main>
 
 <!-- TABLERO DE JUEGO -->
@@ -611,7 +710,6 @@
     const labelOEl = document.getElementById('label-o');
 
     const themeRow = document.getElementById('theme-row');
-    const themeButtons = Array.from(document.querySelectorAll('.theme-btn'));
 
     const btnHistory = document.getElementById('btn-history');
     const btnHistoryBack = document.getElementById('btn-history-back');
@@ -619,11 +717,34 @@
     const historyScreen = document.getElementById('history-screen');
     const historyListEl = document.getElementById('history-list');
 
+    const btnShop = document.getElementById('btn-shop');
+    const btnShopBack = document.getElementById('btn-shop-back');
+    const shopScreen = document.getElementById('shop-screen');
+    const shopListEl = document.getElementById('shop-list');
+    const gemBadge = document.getElementById('gem-badge');
+    const gemCountEl = document.getElementById('gem-count');
+    const gemCountShopEl = document.getElementById('gem-count-shop');
+
     const WIN_COMBOS = [
         [0,1,2],[3,4,5],[6,7,8],
         [0,3,6],[1,4,7],[2,5,8],
         [0,4,8],[2,4,6]
     ];
+
+    // Config de conexión: incluye STUN + TURN para que la sala conecte
+    // incluso cuando los dos dispositivos están en redes distintas (datos móviles,
+    // wifis distintas, redes con NAT restrictivo, etc.)
+    const PEER_CONFIG = {
+        debug: 0,
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.relay.metered.ca:80' },
+                { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+            ]
+        }
+    };
 
     // ---------- ESTADO ----------
     let mode = null;           // 'online-host' | 'online-guest' | 'local'
@@ -639,34 +760,161 @@
     let gameActive = false;
     let scores = { X: 0, O: 0, D: 0 };
 
-    // ---------- FICHAS / TEMAS ----------
+    // ---------- FICHAS / TEMAS / GEMAS ----------
     const THEMES = {
-        classic:   { X: 'X',  O: 'O' },
-        elemental: { X: '🔥', O: '💧' },
-        space:     { X: '⭐', O: '🌙' },
-        animals:   { X: '🐱', O: '🐶' }
+        classic:    { name: 'Clásico',   X: 'X',  O: 'O',  rarity: 'common',    cost: 0 },
+        elemental:  { name: 'Elemental', X: '🔥', O: '💧', rarity: 'common',    cost: 0 },
+        space:      { name: 'Espacial',  X: '⭐', O: '🌙', rarity: 'common',    cost: 0 },
+        animals:    { name: 'Salvaje',   X: '🐱', O: '🐶', rarity: 'common',    cost: 0 },
+        thunder:    { name: 'Tormenta',  X: '⚡', O: '☠️', rarity: 'rare',      cost: 30 },
+        fruit:      { name: 'Frutal',    X: '🍎', O: '🍋', rarity: 'rare',      cost: 45 },
+        royal:      { name: 'Corona',    X: '👑', O: '💎', rarity: 'special',   cost: 100 },
+        mythic:     { name: 'Mítico',    X: '🐉', O: '🦄', rarity: 'special',   cost: 140 },
+        cosmic:     { name: 'Cósmico',   X: '🌌', O: '☄️', rarity: 'legendary', cost: 300 }
     };
+
+    const RARITY_LABELS = { common: 'Gratis', rare: 'Rara', special: 'Especial', legendary: 'Legendaria' };
+    const RARITY_ORDER = ['common', 'rare', 'special', 'legendary'];
+
+    function getUnlockedThemes() {
+        try {
+            const stored = JSON.parse(localStorage.getItem('tricode_unlocked'));
+            if (Array.isArray(stored) && stored.length) return stored;
+        } catch (e) {}
+        const free = Object.keys(THEMES).filter(k => THEMES[k].cost === 0);
+        localStorage.setItem('tricode_unlocked', JSON.stringify(free));
+        return free;
+    }
+
+    function saveUnlockedThemes(list) {
+        localStorage.setItem('tricode_unlocked', JSON.stringify(list));
+    }
+
+    function getGems() {
+        return parseInt(localStorage.getItem('tricode_gems') || '0', 10);
+    }
+
+    function setGems(amount) {
+        localStorage.setItem('tricode_gems', String(amount));
+        gemCountEl.textContent = amount;
+        gemCountShopEl.textContent = amount;
+    }
+
+    function awardGems(amount) {
+        if (amount <= 0) return;
+        setGems(getGems() + amount);
+        [gemBadge].forEach(el => {
+            el.classList.remove('bump');
+            void el.offsetWidth;
+            el.classList.add('bump');
+        });
+    }
+
     let currentTheme = localStorage.getItem('tricode_theme') || 'classic';
+    if (!getUnlockedThemes().includes(currentTheme)) currentTheme = 'classic';
 
     function symbolFor(key) {
         return THEMES[currentTheme][key];
     }
 
-    function applyThemeUI() {
-        themeButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+    function selectTheme(key) {
+        currentTheme = key;
+        localStorage.setItem('tricode_theme', key);
+        renderThemeRow();
+        renderBoard();
+    }
+
+    function renderThemeRow() {
+        const unlocked = getUnlockedThemes();
+        themeRow.innerHTML = unlocked.map(key => {
+            const t = THEMES[key];
+            const active = key === currentTheme ? 'active' : '';
+            return `
+                <button class="theme-btn ${active}" data-theme="${key}">
+                    <span class="theme-icons">${t.X}/${t.O}</span><small>${t.name}</small>
+                </button>
+            `;
+        }).join('');
+        themeRow.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => selectTheme(btn.dataset.theme));
         });
         labelXEl.textContent = symbolFor('X');
         labelOEl.textContent = symbolFor('O');
     }
 
-    themeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            currentTheme = btn.dataset.theme;
-            localStorage.setItem('tricode_theme', currentTheme);
-            applyThemeUI();
-            renderBoard();
+    function applyThemeUI() {
+        renderThemeRow();
+        setGems(getGems());
+    }
+
+    function renderShop() {
+        const unlocked = getUnlockedThemes();
+        const gems = getGems();
+        let html = '';
+        RARITY_ORDER.forEach(rarity => {
+            const keysInRarity = Object.keys(THEMES).filter(k => THEMES[k].rarity === rarity);
+            if (!keysInRarity.length) return;
+            html += `<div class="shop-section-title">${RARITY_LABELS[rarity]}</div>`;
+            keysInRarity.forEach(key => {
+                const t = THEMES[key];
+                const owned = unlocked.includes(key);
+                const equipped = key === currentTheme;
+                let btnHtml;
+                if (equipped) {
+                    btnHtml = `<button class="shop-item-btn equipped-btn" disabled>✓ Equipada</button>`;
+                } else if (owned) {
+                    btnHtml = `<button class="shop-item-btn equip" data-action="equip" data-key="${key}">Usar</button>`;
+                } else {
+                    const canBuy = gems >= t.cost;
+                    btnHtml = `<button class="shop-item-btn buy" data-action="buy" data-key="${key}" ${canBuy ? '' : 'disabled'}>💎 ${t.cost}</button>`;
+                }
+                html += `
+                    <div class="shop-item ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}">
+                        <div class="shop-item-icon">${t.X}/${t.O}</div>
+                        <div class="shop-item-info">
+                            <div class="shop-item-name">${t.name} <span class="rarity-chip rarity-${rarity}">${RARITY_LABELS[rarity]}</span></div>
+                            <div class="shop-item-cost">${t.cost === 0 ? 'Incluida' : `Cuesta 💎 ${t.cost}`}</div>
+                        </div>
+                        ${btnHtml}
+                    </div>
+                `;
+            });
         });
+        shopListEl.innerHTML = html;
+
+        shopListEl.querySelectorAll('[data-action="buy"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.key;
+                const t = THEMES[key];
+                const balance = getGems();
+                if (balance < t.cost) return;
+                setGems(balance - t.cost);
+                const unlockedNow = getUnlockedThemes();
+                unlockedNow.push(key);
+                saveUnlockedThemes(unlockedNow);
+                selectTheme(key);
+                vibrate([30, 40, 30, 40, 60]);
+                renderShop();
+            });
+        });
+
+        shopListEl.querySelectorAll('[data-action="equip"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectTheme(btn.dataset.key);
+                renderShop();
+            });
+        });
+    }
+
+    btnShop.addEventListener('click', () => {
+        renderShop();
+        menuScreen.classList.add('hidden');
+        shopScreen.classList.remove('hidden');
+    });
+
+    btnShopBack.addEventListener('click', () => {
+        shopScreen.classList.add('hidden');
+        menuScreen.classList.remove('hidden');
     });
 
     // ---------- REGISTRO POR DISPOSITIVO ----------
@@ -896,10 +1144,16 @@
             if (mode === 'local') {
                 statusText.innerHTML = `🏆 ¡${localNames[result.winner]} gana! (${symbolFor(result.winner)})`;
                 resultText = `${localNames[result.winner]} ganó`;
+                awardGems(1);
+                statusText.innerHTML += ' <span style="color:#67e8f9;">+1 💎</span>';
             } else {
                 const gane = result.winner === mySymbol;
                 statusText.textContent = gane ? '🏆 ¡Ganaste!' : '💀 Perdiste, tu rival gana.';
                 resultText = gane ? 'Ganaste' : 'Perdiste';
+                if (gane) {
+                    awardGems(2);
+                    statusText.innerHTML += ' <span style="color:#67e8f9;">+2 💎</span>';
+                }
             }
         }
 
@@ -994,7 +1248,7 @@
         const peerId = 'tricode-' + roomCode.toLowerCase();
 
         if (peer) { try { peer.destroy(); } catch (e) {} }
-        peer = new Peer(peerId, { debug: 0 });
+        peer = new Peer(peerId, PEER_CONFIG);
 
         peer.on('open', () => {
             setButtonLoading(btnCreate, false);
@@ -1044,7 +1298,7 @@
         setButtonLoading(btnJoin, true, 'Conectando...');
 
         if (peer) { try { peer.destroy(); } catch (e) {} }
-        peer = new Peer(null, { debug: 0 });
+        peer = new Peer(null, PEER_CONFIG);
 
         peer.on('open', () => {
             const targetId = 'tricode-' + codigo.toLowerCase();

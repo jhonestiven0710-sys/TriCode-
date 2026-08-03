@@ -277,6 +277,16 @@
     .score-x strong { color: var(--primary-neon); }
     .score-o strong { color: var(--secondary-neon); }
 
+    .round-indicator {
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+        margin-top: -8px;
+        margin-bottom: 14px;
+    }
+
     .board {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -555,6 +565,22 @@
     .shop-item-btn.buy:disabled { background: rgba(255,255,255,0.08); color: var(--text-muted); cursor: not-allowed; }
     .shop-item-btn.equip { background: rgba(52, 211, 153, 0.15); color: var(--local-accent); border: 1px solid rgba(52, 211, 153, 0.4); }
     .shop-item-btn.equipped-btn { background: rgba(124, 92, 255, 0.2); color: var(--accent-violet); border: 1px solid var(--accent-violet); }
+
+    /* ---------- CELEBRACIÓN DE VICTORIA ---------- */
+    .celebrate-particle {
+        position: fixed;
+        top: 100%;
+        font-size: 1.6rem;
+        pointer-events: none;
+        z-index: 999;
+        animation: floatUp 1.5s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+        0%   { transform: translateY(0) rotate(0deg) scale(0.6); opacity: 0; }
+        15%  { opacity: 1; }
+        100% { transform: translateY(-100vh) rotate(280deg) scale(1.1); opacity: 0; }
+    }
 </style>
 </head>
 <body>
@@ -638,7 +664,7 @@
         <h2 class="history-title">Tienda</h2>
         <div class="gem-badge"><i class="fa-solid fa-gem"></i> <span id="gem-count-shop">0</span></div>
     </div>
-    <p class="shop-hint">Gana <strong>+1 💎</strong> por partida local ganada y <strong>+2 💎</strong> por partida online ganada.</p>
+    <p class="shop-hint">Gana <strong>+2 💎</strong> por cada partida <strong>online</strong> que ganes. El modo de un solo dispositivo no otorga gemas.</p>
     <div id="shop-list" class="shop-list"></div>
 </main>
 
@@ -656,6 +682,7 @@
             <span>Empates <strong id="score-d">0</strong></span>
             <span class="score-o"><span id="label-o">O</span> <strong id="score-o">0</strong></span>
         </div>
+        <p class="round-indicator hidden" id="round-indicator">Ronda 1</p>
     </header>
 
     <section class="board" id="board">
@@ -706,6 +733,7 @@
     const scoreXEl = document.getElementById('score-x');
     const scoreOEl = document.getElementById('score-o');
     const scoreDEl = document.getElementById('score-d');
+    const roundIndicator = document.getElementById('round-indicator');
     const labelXEl = document.getElementById('label-x');
     const labelOEl = document.getElementById('label-o');
 
@@ -1069,15 +1097,32 @@
     }
 
     // ---------- LÓGICA DEL TABLERO ----------
-    function resetGameState() {
+    let roundCount = 0;
+
+    function startNewRound() {
         board = Array(9).fill(null);
-        currentTurn = 'X';
+        roundCount++;
+        currentTurn = (roundCount % 2 === 1) ? 'X' : 'O';
         gameActive = true;
+        renderBoard();
+        updateStatusText();
+        updateRoundIndicator();
+        btnRestart.classList.add('hidden');
+    }
+
+    function updateRoundIndicator() {
+        if (roundIndicator) {
+            roundIndicator.textContent = `Ronda ${roundCount}`;
+            roundIndicator.classList.toggle('hidden', !mode);
+        }
+    }
+
+    function resetGameState() {
         scores = { X: 0, O: 0, D: 0 };
         opponentName = null;
-        renderBoard();
+        roundCount = 0;
+        startNewRound();
         updateScoreBar();
-        btnRestart.classList.add('hidden');
     }
 
     function renderBoard() {
@@ -1111,6 +1156,20 @@
         combo.forEach(i => cells[i].classList.add('win'));
     }
 
+    function celebrateWin(symbol) {
+        const emojis = [symbol, '🎉', '✨'];
+        for (let i = 0; i < 14; i++) {
+            const p = document.createElement('span');
+            p.className = 'celebrate-particle';
+            p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDelay = (Math.random() * 0.4) + 's';
+            p.style.fontSize = (1.1 + Math.random() * 1.2) + 'rem';
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 2200);
+        }
+    }
+
     function updateStatusText() {
         turnStatus.classList.remove('pulse');
         if (mode === 'local') {
@@ -1141,11 +1200,10 @@
             highlightWinCombo(result.combo);
             playWinSound();
             vibrate([60, 30, 60]);
+            celebrateWin(symbolFor(result.winner));
             if (mode === 'local') {
                 statusText.innerHTML = `🏆 ¡${localNames[result.winner]} gana! (${symbolFor(result.winner)})`;
                 resultText = `${localNames[result.winner]} ganó`;
-                awardGems(1);
-                statusText.innerHTML += ' <span style="color:#67e8f9;">+1 💎</span>';
             } else {
                 const gane = result.winner === mySymbol;
                 statusText.textContent = gane ? '🏆 ¡Ganaste!' : '💀 Perdiste, tu rival gana.';
@@ -1349,7 +1407,6 @@
             case 'welcome':
                 opponentName = data.name || 'Rival';
                 gameActive = true;
-                currentTurn = 'X';
                 turnStatus.classList.remove('pulse');
                 updateStatusText();
                 break;
@@ -1359,12 +1416,7 @@
                 break;
 
             case 'restart':
-                board = Array(9).fill(null);
-                currentTurn = 'X';
-                gameActive = true;
-                renderBoard();
-                updateStatusText();
-                btnRestart.classList.add('hidden');
+                startNewRound();
                 break;
         }
     }
@@ -1374,12 +1426,7 @@
         if (mode !== 'local' && conn && conn.open) {
             conn.send({ type: 'restart' });
         }
-        board = Array(9).fill(null);
-        currentTurn = 'X';
-        gameActive = true;
-        renderBoard();
-        updateStatusText();
-        btnRestart.classList.add('hidden');
+        startNewRound();
     });
 
     btnLeave.addEventListener('click', () => {
@@ -1387,6 +1434,7 @@
         if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
         mode = null;
         gameActive = false;
+        roundIndicator.classList.add('hidden');
         localNameGroup.classList.add('hidden');
         localSetup.classList.add('hidden');
         volverAlMenu();

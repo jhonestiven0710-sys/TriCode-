@@ -66,20 +66,62 @@ if ('serviceWorker' in navigator) {
         [0,4,8],[2,4,6]
     ];
 
-    // Config de conexión: incluye STUN + TURN para que la sala conecte
-    // incluso cuando los dos dispositivos están en redes distintas (datos móviles,
-    // wifis distintas, redes con NAT restrictivo, etc.)
+    // Config de conexión: STUN públicos fiables + TURN de respaldo
+    // (las credenciales públicas antiguas de Open Relay ya no son fiables;
+    // Google STUN + múltiples endpoints mejoran la tasa de éxito entre
+    // redes distintas / móviles / NAT restrictivo).
     const PEER_CONFIG = {
-        debug: 0,
+        debug: 1,
         config: {
             iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                { urls: 'stun:stun.cloudflare.com:3478' },
                 { urls: 'stun:stun.relay.metered.ca:80' },
-                { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-            ]
+                {
+                    urls: [
+                        'turn:openrelay.metered.ca:80',
+                        'turn:openrelay.metered.ca:443',
+                        'turn:openrelay.metered.ca:443?transport=tcp',
+                        'turns:openrelay.metered.ca:443'
+                    ],
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: [
+                        'turn:global.relay.metered.ca:80',
+                        'turn:global.relay.metered.ca:443',
+                        'turn:global.relay.metered.ca:443?transport=tcp'
+                    ],
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ],
+            sdpSemantics: 'unified-plan'
         }
     };
+
+    const CONNECT_TIMEOUT_MS = 18000; // evita que se quede "cargando" para siempre
+    let connectTimeoutId = null;
+
+    function clearConnectTimeout() {
+        if (connectTimeoutId) {
+            clearTimeout(connectTimeoutId);
+            connectTimeoutId = null;
+        }
+    }
+
+    function startConnectTimeout(onTimeout) {
+        clearConnectTimeout();
+        connectTimeoutId = setTimeout(() => {
+            connectTimeoutId = null;
+            onTimeout();
+        }, CONNECT_TIMEOUT_MS);
+    }
 
     // ---------- ESTADO ----------
     let mode = null;           // 'online-host' | 'online-guest' | 'local'
@@ -423,6 +465,7 @@ if ('serviceWorker' in navigator) {
     }
 
     function volverAlMenu() {
+        clearConnectTimeout();
         gameScreen.classList.add('hidden');
         playScreen.classList.add('hidden');
         menuScreen.classList.remove('hidden');
@@ -633,6 +676,14 @@ if ('serviceWorker' in navigator) {
         mode = 'online-host';
         mySymbol = 'X';
         setButtonLoading(btnCreate, true, 'Creando sala...');
+        startConnectTimeout(() => {
+            setButtonLoading(btnCreate, false);
+            try { if (peer) peer.destroy(); } catch (e) {}
+            peer = null;
+            alert('⚠️ Tiempo de espera agotado al crear la sala. Comprueba tu internet e inténtalo de nuevo.');
+            mode = null;
+            volverAlMenu();
+        });
         crearPeerHost(0);
     });
 
@@ -644,6 +695,7 @@ if ('serviceWorker' in navigator) {
         peer = new Peer(peerId, PEER_CONFIG);
 
         peer.on('open', () => {
+            clearConnectTimeout();
             setButtonLoading(btnCreate, false);
             resetGameState();
             mostrarTablero();
@@ -654,17 +706,29 @@ if ('serviceWorker' in navigator) {
         });
 
         peer.on('connection', (incoming) => {
+            if (conn && conn.open) {
+                try { incoming.close(); } catch (e) {}
+                return;
+            }
             conn = incoming;
-            setupConnection();
+            setupConnection(true);
         });
 
         peer.on('error', (err) => {
-            if (err.type === 'unavailable-id' && intentos < 5) {
+            if (err.type === 'unavailable-id' && intentos < 6) {
                 crearPeerHost(intentos + 1);
             } else {
+                clearConnectTimeout();
                 setButtonLoading(btnCreate, false);
                 alert('⚠️ No se pudo crear la sala. Revisa tu conexión a internet e inténtalo de nuevo.');
+                mode = null;
                 volverAlMenu();
+            }
+        });
+
+        peer.on('disconnected', () => {
+            if (peer && !peer.destroyed) {
+                try { peer.reconnect(); } catch (e) {}
             }
         });
     }
@@ -690,15 +754,27 @@ if ('serviceWorker' in navigator) {
         roomCode = codigo;
         setButtonLoading(btnJoin, true, 'Conectando...');
 
+        startConnectTimeout(() => {
+            setButtonLoading(btnJoin, false);
+            try { if (conn) conn.close(); } catch (e) {}
+            try { if (peer) peer.destroy(); } catch (e) {}
+            conn = null;
+            peer = null;
+            alert('⚠️ Tiempo de espera agotado. Verifica el código, que el host tenga la sala abierta y que ambos tengan internet.');
+            mode = null;
+            volverAlMenu();
+        });
+
         if (peer) { try { peer.destroy(); } catch (e) {} }
         peer = new Peer(null, PEER_CONFIG);
 
         peer.on('open', () => {
             const targetId = 'tricode-' + codigo.toLowerCase();
-            conn = peer.connect(targetId, { reliable: true });
-            setupConnection();
+            conn = peer.connect(targetId, { reliable: true, serialization: 'json' });
+            setupConnection(false);
 
             conn.on('open', () => {
+                clearConnectTimeout();
                 setButtonLoading(btnJoin, false);
                 resetGameState();
                 mostrarTablero();
@@ -707,19 +783,41 @@ if ('serviceWorker' in navigator) {
                 conn.send({ type: 'welcome', name: usernameInput.value.trim() });
                 updateStatusText();
             });
+
+            conn.on('error', () => {
+                clearConnectTimeout();
+                setButtonLoading(btnJoin, false);
+                alert('⚠️ Error al conectar con la sala. Verifica el código e inténtalo de nuevo.');
+                mode = null;
+                volverAlMenu();
+            });
         });
 
         peer.on('error', (err) => {
+            clearConnectTimeout();
             setButtonLoading(btnJoin, false);
-            alert('⚠️ No se encontró esa sala, o hubo un error de conexión. Verifica el código e inténtalo de nuevo.');
+            const msg = (err && err.type === 'peer-unavailable')
+                ? '⚠️ No se encontró esa sala. Comprueba el código y que el host la tenga abierta.'
+                : '⚠️ Error de conexión. Verifica el código e internet e inténtalo de nuevo.';
+            alert(msg);
+            mode = null;
             volverAlMenu();
         });
     });
 
     // ---------- CONEXIÓN P2P ----------
-    function setupConnection() {
+    function setupConnection(isHost) {
+        if (!conn) return;
+
+        // Evitar listeners duplicados si se llama más de una vez
+        conn.off && conn.off('data');
+        conn.off && conn.off('close');
+        conn.off && conn.off('error');
+
         conn.on('open', () => {
-            conn.send({ type: 'welcome', name: usernameInput.value.trim() });
+            if (isHost) {
+                conn.send({ type: 'welcome', name: usernameInput.value.trim() });
+            }
         });
 
         conn.on('data', (data) => handleData(data));
@@ -733,6 +831,12 @@ if ('serviceWorker' in navigator) {
                 btnRestart.classList.add('hidden');
             }
         });
+
+        conn.on('error', () => {
+            if (gameActive || mode) {
+                statusText.textContent = '⚠️ Error de conexión con el rival.';
+            }
+        });
     }
 
     function handleData(data) {
@@ -744,6 +848,10 @@ if ('serviceWorker' in navigator) {
                 gameActive = true;
                 turnStatus.classList.remove('pulse');
                 updateStatusText();
+                // Responder welcome al host también (por si el guest llegó primero)
+                if (mode === 'online-host' && conn && conn.open) {
+                    conn.send({ type: 'welcome', name: usernameInput.value.trim() });
+                }
                 break;
 
             case 'move':
@@ -765,6 +873,7 @@ if ('serviceWorker' in navigator) {
     });
 
     btnLeave.addEventListener('click', () => {
+        clearConnectTimeout();
         if (conn) { try { conn.close(); } catch (e) {} conn = null; }
         if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
         mode = null;
@@ -772,6 +881,8 @@ if ('serviceWorker' in navigator) {
         roundIndicator.classList.add('hidden');
         localNameGroup.classList.add('hidden');
         localSetup.classList.add('hidden');
+        setButtonLoading(btnCreate, false);
+        setButtonLoading(btnJoin, false);
         volverAlMenu();
     });
 
